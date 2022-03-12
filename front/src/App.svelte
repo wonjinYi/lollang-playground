@@ -1,15 +1,39 @@
 <script>
-	
+	import axios from 'axios';
+	//const proxy = 'https://cors-anywhere.herokuapp.com/';
+	const runCode = async function (e) {
+		try {
+			const reqUrl = `https://asia-northeast3-lollang-playground.cloudfunctions.net/compileLollang`;
+			const reqdata = {
+				message : code,
+			};
+			console.log(reqUrl);
+			console.log(JSON.stringify(reqdata));
+			const res = await axios.post(reqUrl, JSON.stringify(reqdata));
+			console.log(res);
+			result = res.data;
+		} catch(err) {
+			result = err;
+			console.error(err);
+		}
+		
+	}
 
+	const downloadCode = function (e) {
+		console.log('download');
+	}
 
+	let code = '우리 잘해보죠\n\n아트록스님 캐리좀 ㅠㅠㅠㅠㅓㅠㅠㅓㅠㅠㅠㅓㅠㅠㅠ\n그레이브즈님 캐리좀 ㅠㅠㅓㅠㅠㅓㅠㅠㅠㅠㅠㅓㅠㅠㅠㅠㅠ\n가렌님 캐리좀 ㅠㅠㅓㅠㅠㅓㅠㅠㅓㅠㅠㅓㅠㅠ\n\n아트록스 갱좀요\n그레이브즈ㅜㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n가렌 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅓㅠㅠㅠㅠㅜㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈 갱좀요\n\n뭐하냐고\n\n팀차이 ㅈㅈ';
+	let result = 'Output of lollang code will be shown here';
+	let isError = false;
 </script>
 
 <div id="app">
 	<header>
 		<h1 class="header-title">Lollang Playground</h1>
 		<div class="header-functions" style="margin-left:8px;">
-			<button class="header-functions-btn">DOWNLOAD</button>
-			<button class="header-functions-btn">RUN</button>
+			<button class="header-functions-btn" on:click={downloadCode}>DOWNLOAD</button>
+			<button class="header-functions-btn" on:click={runCode}>RUN</button>
 		</div>
 		<div class="header-lollang-github" style="margin-left:auto;">
 			<button class="header-functions-btn" 
@@ -23,14 +47,14 @@
 		<section class="main-input-part">
 			<h2 class="main-subtitle">CODE</h2>
 			<div class="main-article">
-				<textarea class="code-editor" placeholder="code your lol here" />
+				<textarea class="code-editor" placeholder="code your lol here" bind:value={code}/>
 			</div>
 		</section>
 		<div style="border-right: 2px solid lightgray;"></div>
 		<section class="main-output-part">
 			<h2 class="main-subtitle">RESULT</h2>
 			<div class="main-article">
-				<p class="result-viewer">Output of lollang code will be shown here</p>
+				<p class="result-viewer">{result}</p>
 			</div>
 			
 		</section>
