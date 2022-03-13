@@ -1,3 +1,5 @@
+@import url('./tooltip.css');
+
 * {
 	box-sizing : border-box;
 }
