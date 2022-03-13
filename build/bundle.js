@@ -4,6 +4,12 @@ var app = (function () {
     'use strict';
 
     function noop() { }
+    function assign(tar, src) {
+        // @ts-ignore
+        for (const k in src)
+            tar[k] = src[k];
+        return tar;
+    }
     function add_location(element, file, line, column, char) {
         element.__svelte_meta = {
             loc: { file, line, column, char }
@@ -24,8 +30,62 @@ var app = (function () {
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
     }
+    let src_url_equal_anchor;
+    function src_url_equal(element_src, url) {
+        if (!src_url_equal_anchor) {
+            src_url_equal_anchor = document.createElement('a');
+        }
+        src_url_equal_anchor.href = url;
+        return element_src === src_url_equal_anchor.href;
+    }
     function is_empty(obj) {
         return Object.keys(obj).length === 0;
+    }
+    function create_slot(definition, ctx, $$scope, fn) {
+        if (definition) {
+            const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
+            return definition[0](slot_ctx);
+        }
+    }
+    function get_slot_context(definition, ctx, $$scope, fn) {
+        return definition[1] && fn
+            ? assign($$scope.ctx.slice(), definition[1](fn(ctx)))
+            : $$scope.ctx;
+    }
+    function get_slot_changes(definition, $$scope, dirty, fn) {
+        if (definition[2] && fn) {
+            const lets = definition[2](fn(dirty));
+            if ($$scope.dirty === undefined) {
+                return lets;
+            }
+            if (typeof lets === 'object') {
+                const merged = [];
+                const len = Math.max($$scope.dirty.length, lets.length);
+                for (let i = 0; i < len; i += 1) {
+                    merged[i] = $$scope.dirty[i] | lets[i];
+                }
+                return merged;
+            }
+            return $$scope.dirty | lets;
+        }
+        return $$scope.dirty;
+    }
+    function update_slot_base(slot, slot_definition, ctx, $$scope, slot_changes, get_slot_context_fn) {
+        if (slot_changes) {
+            const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
+            slot.p(slot_context, slot_changes);
+        }
+    }
+    function get_all_dirty_from_scope($$scope) {
+        if ($$scope.ctx.length > 32) {
+            const dirty = [];
+            const length = $$scope.ctx.length / 32;
+            for (let i = 0; i < length; i++) {
+                dirty[i] = -1;
+            }
+            return dirty;
+        }
+        return -1;
     }
     function append(target, node) {
         target.appendChild(node);
@@ -68,6 +128,9 @@ var app = (function () {
         else {
             node.style.setProperty(key, value, important ? 'important' : '');
         }
+    }
+    function toggle_class(element, name, toggle) {
+        element.classList[toggle ? 'add' : 'remove'](name);
     }
     function custom_event(type, detail, bubbles = false) {
         const e = document.createEvent('CustomEvent');
@@ -162,10 +225,40 @@ var app = (function () {
         }
     }
     const outroing = new Set();
+    let outros;
+    function group_outros() {
+        outros = {
+            r: 0,
+            c: [],
+            p: outros // parent group
+        };
+    }
+    function check_outros() {
+        if (!outros.r) {
+            run_all(outros.c);
+        }
+        outros = outros.p;
+    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
             block.i(local);
+        }
+    }
+    function transition_out(block, local, detach, callback) {
+        if (block && block.o) {
+            if (outroing.has(block))
+                return;
+            outroing.add(block);
+            outros.c.push(() => {
+                outroing.delete(block);
+                if (callback) {
+                    if (detach)
+                        block.d(1);
+                    callback();
+                }
+            });
+            block.o(local);
         }
     }
 
@@ -174,6 +267,9 @@ var app = (function () {
         : typeof globalThis !== 'undefined'
             ? globalThis
             : global);
+    function create_component(block) {
+        block && block.c();
+    }
     function mount_component(component, target, anchor, customElement) {
         const { fragment, on_mount, on_destroy, after_update } = component.$$;
         fragment && fragment.m(target, anchor);
@@ -1826,117 +1922,751 @@ var app = (function () {
 
     var axios = axios_1;
 
+    var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+    function createCommonjsModule(fn) {
+      var module = { exports: {} };
+    	return fn(module, module.exports), module.exports;
+    }
+
+    var FileSaver_min = createCommonjsModule(function (module, exports) {
+    (function(a,b){b();})(commonjsGlobal,function(){function b(a,b){return "undefined"==typeof b?b={autoBom:!1}:"object"!=typeof b&&(console.warn("Deprecated: Expected third argument to be a object"),b={autoBom:!b}),b.autoBom&&/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(a.type)?new Blob(["\uFEFF",a],{type:a.type}):a}function c(a,b,c){var d=new XMLHttpRequest;d.open("GET",a),d.responseType="blob",d.onload=function(){g(d.response,b,c);},d.onerror=function(){console.error("could not download file");},d.send();}function d(a){var b=new XMLHttpRequest;b.open("HEAD",a,!1);try{b.send();}catch(a){}return 200<=b.status&&299>=b.status}function e(a){try{a.dispatchEvent(new MouseEvent("click"));}catch(c){var b=document.createEvent("MouseEvents");b.initMouseEvent("click",!0,!0,window,0,0,0,80,20,!1,!1,!1,!1,0,null),a.dispatchEvent(b);}}var f="object"==typeof window&&window.window===window?window:"object"==typeof self&&self.self===self?self:"object"==typeof commonjsGlobal&&commonjsGlobal.global===commonjsGlobal?commonjsGlobal:void 0,a=f.navigator&&/Macintosh/.test(navigator.userAgent)&&/AppleWebKit/.test(navigator.userAgent)&&!/Safari/.test(navigator.userAgent),g=f.saveAs||("object"!=typeof window||window!==f?function(){}:"download"in HTMLAnchorElement.prototype&&!a?function(b,g,h){var i=f.URL||f.webkitURL,j=document.createElement("a");g=g||b.name||"download",j.download=g,j.rel="noopener","string"==typeof b?(j.href=b,j.origin===location.origin?e(j):d(j.href)?c(b,g,h):e(j,j.target="_blank")):(j.href=i.createObjectURL(b),setTimeout(function(){i.revokeObjectURL(j.href);},4E4),setTimeout(function(){e(j);},0));}:"msSaveOrOpenBlob"in navigator?function(f,g,h){if(g=g||f.name||"download","string"!=typeof f)navigator.msSaveOrOpenBlob(b(f,h),g);else if(d(f))c(f,g,h);else {var i=document.createElement("a");i.href=f,i.target="_blank",setTimeout(function(){e(i);});}}:function(b,d,e,g){if(g=g||open("","_blank"),g&&(g.document.title=g.document.body.innerText="downloading..."),"string"==typeof b)return c(b,d,e);var h="application/octet-stream"===b.type,i=/constructor/i.test(f.HTMLElement)||f.safari,j=/CriOS\/[\d]+/.test(navigator.userAgent);if((j||h&&i||a)&&"undefined"!=typeof FileReader){var k=new FileReader;k.onloadend=function(){var a=k.result;a=j?a:a.replace(/^data:[^;]*;/,"data:attachment/file;"),g?g.location.href=a:location=a,g=null;},k.readAsDataURL(b);}else {var l=f.URL||f.webkitURL,m=l.createObjectURL(b);g?g.location=m:location.href=m,g=null,setTimeout(function(){l.revokeObjectURL(m);},4E4);}});f.saveAs=g.saveAs=g,(module.exports=g);});
+
+
+    });
+
+    /* node_modules\svelte-tooltip\src\SvelteTooltip.svelte generated by Svelte v3.46.4 */
+
+    const file$1 = "node_modules\\svelte-tooltip\\src\\SvelteTooltip.svelte";
+    const get_custom_tip_slot_changes = dirty => ({});
+    const get_custom_tip_slot_context = ctx => ({});
+
+    // (85:4) {:else}
+    function create_else_block(ctx) {
+    	let current;
+    	const custom_tip_slot_template = /*#slots*/ ctx[9]["custom-tip"];
+    	const custom_tip_slot = create_slot(custom_tip_slot_template, ctx, /*$$scope*/ ctx[8], get_custom_tip_slot_context);
+
+    	const block = {
+    		c: function create() {
+    			if (custom_tip_slot) custom_tip_slot.c();
+    		},
+    		m: function mount(target, anchor) {
+    			if (custom_tip_slot) {
+    				custom_tip_slot.m(target, anchor);
+    			}
+
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (custom_tip_slot) {
+    				if (custom_tip_slot.p && (!current || dirty & /*$$scope*/ 256)) {
+    					update_slot_base(
+    						custom_tip_slot,
+    						custom_tip_slot_template,
+    						ctx,
+    						/*$$scope*/ ctx[8],
+    						!current
+    						? get_all_dirty_from_scope(/*$$scope*/ ctx[8])
+    						: get_slot_changes(custom_tip_slot_template, /*$$scope*/ ctx[8], dirty, get_custom_tip_slot_changes),
+    						get_custom_tip_slot_context
+    					);
+    				}
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(custom_tip_slot, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(custom_tip_slot, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (custom_tip_slot) custom_tip_slot.d(detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block.name,
+    		type: "else",
+    		source: "(85:4) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (83:4) {#if tip}
+    function create_if_block(ctx) {
+    	let div;
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			t = text(/*tip*/ ctx[0]);
+    			attr_dev(div, "class", "default-tip svelte-16glvw6");
+    			attr_dev(div, "style", /*style*/ ctx[6]);
+    			add_location(div, file$1, 83, 6, 1459);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*tip*/ 1) set_data_dev(t, /*tip*/ ctx[0]);
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(83:4) {#if tip}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$1(ctx) {
+    	let div1;
+    	let span;
+    	let t;
+    	let div0;
+    	let current_block_type_index;
+    	let if_block;
+    	let current;
+    	const default_slot_template = /*#slots*/ ctx[9].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[8], null);
+    	const if_block_creators = [create_if_block, create_else_block];
+    	const if_blocks = [];
+
+    	function select_block_type(ctx, dirty) {
+    		if (/*tip*/ ctx[0]) return 0;
+    		return 1;
+    	}
+
+    	current_block_type_index = select_block_type(ctx);
+    	if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
+
+    	const block = {
+    		c: function create() {
+    			div1 = element("div");
+    			span = element("span");
+    			if (default_slot) default_slot.c();
+    			t = space();
+    			div0 = element("div");
+    			if_block.c();
+    			attr_dev(span, "class", "tooltip-slot svelte-16glvw6");
+    			add_location(span, file$1, 72, 2, 1281);
+    			attr_dev(div0, "class", "tooltip svelte-16glvw6");
+    			toggle_class(div0, "active", /*active*/ ctx[5]);
+    			toggle_class(div0, "left", /*left*/ ctx[4]);
+    			toggle_class(div0, "right", /*right*/ ctx[2]);
+    			toggle_class(div0, "bottom", /*bottom*/ ctx[3]);
+    			toggle_class(div0, "top", /*top*/ ctx[1]);
+    			add_location(div0, file$1, 75, 2, 1334);
+    			attr_dev(div1, "class", "tooltip-wrapper svelte-16glvw6");
+    			add_location(div1, file$1, 71, 0, 1249);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div1, anchor);
+    			append_dev(div1, span);
+
+    			if (default_slot) {
+    				default_slot.m(span, null);
+    			}
+
+    			append_dev(div1, t);
+    			append_dev(div1, div0);
+    			if_blocks[current_block_type_index].m(div0, null);
+    			current = true;
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (default_slot) {
+    				if (default_slot.p && (!current || dirty & /*$$scope*/ 256)) {
+    					update_slot_base(
+    						default_slot,
+    						default_slot_template,
+    						ctx,
+    						/*$$scope*/ ctx[8],
+    						!current
+    						? get_all_dirty_from_scope(/*$$scope*/ ctx[8])
+    						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[8], dirty, null),
+    						null
+    					);
+    				}
+    			}
+
+    			let previous_block_index = current_block_type_index;
+    			current_block_type_index = select_block_type(ctx);
+
+    			if (current_block_type_index === previous_block_index) {
+    				if_blocks[current_block_type_index].p(ctx, dirty);
+    			} else {
+    				group_outros();
+
+    				transition_out(if_blocks[previous_block_index], 1, 1, () => {
+    					if_blocks[previous_block_index] = null;
+    				});
+
+    				check_outros();
+    				if_block = if_blocks[current_block_type_index];
+
+    				if (!if_block) {
+    					if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
+    					if_block.c();
+    				} else {
+    					if_block.p(ctx, dirty);
+    				}
+
+    				transition_in(if_block, 1);
+    				if_block.m(div0, null);
+    			}
+
+    			if (dirty & /*active*/ 32) {
+    				toggle_class(div0, "active", /*active*/ ctx[5]);
+    			}
+
+    			if (dirty & /*left*/ 16) {
+    				toggle_class(div0, "left", /*left*/ ctx[4]);
+    			}
+
+    			if (dirty & /*right*/ 4) {
+    				toggle_class(div0, "right", /*right*/ ctx[2]);
+    			}
+
+    			if (dirty & /*bottom*/ 8) {
+    				toggle_class(div0, "bottom", /*bottom*/ ctx[3]);
+    			}
+
+    			if (dirty & /*top*/ 2) {
+    				toggle_class(div0, "top", /*top*/ ctx[1]);
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(default_slot, local);
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(default_slot, local);
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div1);
+    			if (default_slot) default_slot.d(detaching);
+    			if_blocks[current_block_type_index].d();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$1.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$1($$self, $$props, $$invalidate) {
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	validate_slots('SvelteTooltip', slots, ['default','custom-tip']);
+    	let { tip = "" } = $$props;
+    	let { top = false } = $$props;
+    	let { right = false } = $$props;
+    	let { bottom = false } = $$props;
+    	let { left = false } = $$props;
+    	let { active = false } = $$props;
+    	let { color = "#757575" } = $$props;
+    	let style = `background-color: ${color};`;
+    	const writable_props = ['tip', 'top', 'right', 'bottom', 'left', 'active', 'color'];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<SvelteTooltip> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$$set = $$props => {
+    		if ('tip' in $$props) $$invalidate(0, tip = $$props.tip);
+    		if ('top' in $$props) $$invalidate(1, top = $$props.top);
+    		if ('right' in $$props) $$invalidate(2, right = $$props.right);
+    		if ('bottom' in $$props) $$invalidate(3, bottom = $$props.bottom);
+    		if ('left' in $$props) $$invalidate(4, left = $$props.left);
+    		if ('active' in $$props) $$invalidate(5, active = $$props.active);
+    		if ('color' in $$props) $$invalidate(7, color = $$props.color);
+    		if ('$$scope' in $$props) $$invalidate(8, $$scope = $$props.$$scope);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		tip,
+    		top,
+    		right,
+    		bottom,
+    		left,
+    		active,
+    		color,
+    		style
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ('tip' in $$props) $$invalidate(0, tip = $$props.tip);
+    		if ('top' in $$props) $$invalidate(1, top = $$props.top);
+    		if ('right' in $$props) $$invalidate(2, right = $$props.right);
+    		if ('bottom' in $$props) $$invalidate(3, bottom = $$props.bottom);
+    		if ('left' in $$props) $$invalidate(4, left = $$props.left);
+    		if ('active' in $$props) $$invalidate(5, active = $$props.active);
+    		if ('color' in $$props) $$invalidate(7, color = $$props.color);
+    		if ('style' in $$props) $$invalidate(6, style = $$props.style);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [tip, top, right, bottom, left, active, style, color, $$scope, slots];
+    }
+
+    class SvelteTooltip extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {
+    			tip: 0,
+    			top: 1,
+    			right: 2,
+    			bottom: 3,
+    			left: 4,
+    			active: 5,
+    			color: 7
+    		});
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "SvelteTooltip",
+    			options,
+    			id: create_fragment$1.name
+    		});
+    	}
+
+    	get tip() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tip(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get top() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set top(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get right() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set right(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get bottom() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set bottom(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get left() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set left(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get active() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set active(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get color() {
+    		throw new Error("<SvelteTooltip>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<SvelteTooltip>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    function getCurrentDate()
+    {
+        var date = new Date();
+        var year = date.getFullYear().toString();
+
+        var month = date.getMonth() + 1;
+        month = month < 10 ? '0' + month.toString() : month.toString();
+
+        var day = date.getDate();
+        day = day < 10 ? '0' + day.toString() : day.toString();
+
+        return year + month + day ;
+    }
+
     /* src\App.svelte generated by Svelte v3.46.4 */
 
     const { console: console_1 } = globals;
     const file = "src\\App.svelte";
 
-    function create_fragment(ctx) {
-    	let div5;
-    	let header;
-    	let h1;
-    	let t1;
-    	let div0;
-    	let button0;
-    	let t3;
-    	let button1;
-    	let t5;
-    	let div1;
-    	let button2;
-    	let t7;
-    	let main;
-    	let section0;
-    	let h20;
-    	let t9;
-    	let div2;
-    	let textarea;
-    	let t10;
-    	let div3;
-    	let t11;
-    	let section1;
-    	let h21;
-    	let t13;
-    	let div4;
-    	let p;
-    	let t14;
+    // (45:3) <SvelteTooltip tip="LEARN" bottom>
+    function create_default_slot_3(ctx) {
+    	let button;
+    	let span;
     	let mounted;
     	let dispose;
 
     	const block = {
     		c: function create() {
+    			button = element("button");
+    			span = element("span");
+    			span.textContent = "menu_book";
+    			attr_dev(span, "class", "material-icons");
+    			add_location(span, file, 47, 5, 1643);
+    			attr_dev(button, "class", "header-functions-btn svelte-xk6vu");
+    			attr_dev(button, "alt", "learning materials in lollang github repository");
+    			add_location(button, file, 45, 4, 1469);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, button, anchor);
+    			append_dev(button, span);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", /*click_handler*/ ctx[4], false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(button);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_3.name,
+    		type: "slot",
+    		source: "(45:3) <SvelteTooltip tip=\\\"LEARN\\\" bottom>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (51:3) <SvelteTooltip tip="DOWNLOAD CODE" bottom>
+    function create_default_slot_2(ctx) {
+    	let button;
+    	let span;
+    	let mounted;
+    	let dispose;
+
+    	const block = {
+    		c: function create() {
+    			button = element("button");
+    			span = element("span");
+    			span.textContent = "get_app";
+    			attr_dev(span, "class", "material-icons");
+    			add_location(span, file, 52, 5, 1882);
+    			attr_dev(button, "class", "header-functions-btn svelte-xk6vu");
+    			attr_dev(button, "alt", "download code to your computer");
+    			add_location(button, file, 51, 4, 1777);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, button, anchor);
+    			append_dev(button, span);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", /*downloadCode*/ ctx[3], false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(button);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_2.name,
+    		type: "slot",
+    		source: "(51:3) <SvelteTooltip tip=\\\"DOWNLOAD CODE\\\" bottom>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (56:3) <SvelteTooltip tip="RUN CODE" bottom>
+    function create_default_slot_1(ctx) {
+    	let button;
+    	let span;
+    	let mounted;
+    	let dispose;
+
+    	const block = {
+    		c: function create() {
+    			button = element("button");
+    			span = element("span");
+    			span.textContent = "flight_takeoff";
+    			attr_dev(span, "class", "material-icons");
+    			add_location(span, file, 57, 5, 2094);
+    			attr_dev(button, "class", "header-functions-btn runbtn svelte-xk6vu");
+    			attr_dev(button, "alt", "run code");
+    			add_location(button, file, 56, 4, 2009);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, button, anchor);
+    			append_dev(button, span);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", /*runCode*/ ctx[2], false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(button);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot_1.name,
+    		type: "slot",
+    		source: "(56:3) <SvelteTooltip tip=\\\"RUN CODE\\\" bottom>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (77:3) <SvelteTooltip tip="Put your *.lo Code below. And press the green <RUN> button to run it" bottom>
+    function create_default_slot(ctx) {
+    	let h2;
+
+    	const block = {
+    		c: function create() {
+    			h2 = element("h2");
+    			h2.textContent = "CODE";
+    			attr_dev(h2, "class", "main-subtitle svelte-xk6vu");
+    			add_location(h2, file, 77, 4, 2734);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, h2, anchor);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(h2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_default_slot.name,
+    		type: "slot",
+    		source: "(77:3) <SvelteTooltip tip=\\\"Put your *.lo Code below. And press the green <RUN> button to run it\\\" bottom>",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment(ctx) {
+    	let div5;
+    	let header;
+    	let img;
+    	let img_src_value;
+    	let t0;
+    	let h1;
+    	let t2;
+    	let div0;
+    	let sveltetooltip0;
+    	let t3;
+    	let sveltetooltip1;
+    	let t4;
+    	let sveltetooltip2;
+    	let t5;
+    	let div1;
+    	let button0;
+    	let t7;
+    	let button1;
+    	let t9;
+    	let main;
+    	let section0;
+    	let sveltetooltip3;
+    	let t10;
+    	let div2;
+    	let textarea;
+    	let t11;
+    	let div3;
+    	let t12;
+    	let section1;
+    	let h2;
+    	let t14;
+    	let div4;
+    	let p;
+    	let t15;
+    	let current;
+    	let mounted;
+    	let dispose;
+
+    	sveltetooltip0 = new SvelteTooltip({
+    			props: {
+    				tip: "LEARN",
+    				bottom: true,
+    				$$slots: { default: [create_default_slot_3] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	sveltetooltip1 = new SvelteTooltip({
+    			props: {
+    				tip: "DOWNLOAD CODE",
+    				bottom: true,
+    				$$slots: { default: [create_default_slot_2] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	sveltetooltip2 = new SvelteTooltip({
+    			props: {
+    				tip: "RUN CODE",
+    				bottom: true,
+    				$$slots: { default: [create_default_slot_1] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	sveltetooltip3 = new SvelteTooltip({
+    			props: {
+    				tip: "Put your *.lo Code below. And press the green <RUN> button to run it",
+    				bottom: true,
+    				$$slots: { default: [create_default_slot] },
+    				$$scope: { ctx }
+    			},
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
     			div5 = element("div");
     			header = element("header");
+    			img = element("img");
+    			t0 = space();
     			h1 = element("h1");
     			h1.textContent = "Lollang Playground";
-    			t1 = space();
+    			t2 = space();
     			div0 = element("div");
-    			button0 = element("button");
-    			button0.textContent = "DOWNLOAD";
+    			create_component(sveltetooltip0.$$.fragment);
     			t3 = space();
-    			button1 = element("button");
-    			button1.textContent = "RUN";
+    			create_component(sveltetooltip1.$$.fragment);
+    			t4 = space();
+    			create_component(sveltetooltip2.$$.fragment);
     			t5 = space();
     			div1 = element("div");
-    			button2 = element("button");
-    			button2.textContent = "lollang GITHUB";
+    			button0 = element("button");
+    			button0.textContent = "lollang GITHUB";
     			t7 = space();
+    			button1 = element("button");
+    			button1.textContent = "playground GITHUB";
+    			t9 = space();
     			main = element("main");
     			section0 = element("section");
-    			h20 = element("h2");
-    			h20.textContent = "CODE";
-    			t9 = space();
+    			create_component(sveltetooltip3.$$.fragment);
+    			t10 = space();
     			div2 = element("div");
     			textarea = element("textarea");
-    			t10 = space();
-    			div3 = element("div");
     			t11 = space();
+    			div3 = element("div");
+    			t12 = space();
     			section1 = element("section");
-    			h21 = element("h2");
-    			h21.textContent = "RESULT";
-    			t13 = space();
+    			h2 = element("h2");
+    			h2.textContent = "RESULT";
+    			t14 = space();
     			div4 = element("div");
     			p = element("p");
-    			t14 = text(/*result*/ ctx[1]);
-    			attr_dev(h1, "class", "header-title svelte-liiz0q");
-    			add_location(h1, file, 32, 2, 1064);
-    			attr_dev(button0, "class", "header-functions-btn svelte-liiz0q");
-    			add_location(button0, file, 34, 3, 1176);
-    			attr_dev(button1, "class", "header-functions-btn svelte-liiz0q");
-    			add_location(button1, file, 35, 3, 1259);
+    			t15 = text(/*result*/ ctx[1]);
+    			if (!src_url_equal(img.src, img_src_value = icon)) attr_dev(img, "src", img_src_value);
+    			attr_dev(img, "alt", 'icon');
+    			attr_dev(img, "class", "svelte-xk6vu");
+    			add_location(img, file, 40, 2, 1278);
+    			attr_dev(h1, "class", "header-title svelte-xk6vu");
+    			add_location(h1, file, 41, 2, 1313);
     			attr_dev(div0, "class", "header-functions");
     			set_style(div0, "margin-left", "8px");
-    			add_location(div0, file, 33, 2, 1116);
-    			attr_dev(button2, "class", "header-functions-btn svelte-liiz0q");
-    			add_location(button2, file, 38, 3, 1407);
+    			add_location(div0, file, 43, 2, 1369);
+    			attr_dev(button0, "class", "header-functions-btn svelte-xk6vu");
+    			add_location(button0, file, 63, 3, 2262);
+    			attr_dev(button1, "class", "header-functions-btn svelte-xk6vu");
+    			add_location(button1, file, 67, 3, 2410);
     			attr_dev(div1, "class", "header-lollang-github");
     			set_style(div1, "margin-left", "auto");
-    			add_location(div1, file, 37, 2, 1341);
-    			attr_dev(header, "class", "svelte-liiz0q");
-    			add_location(header, file, 31, 1, 1052);
-    			attr_dev(h20, "class", "main-subtitle svelte-liiz0q");
-    			add_location(h20, file, 47, 3, 1625);
-    			attr_dev(textarea, "class", "code-editor svelte-liiz0q");
+    			add_location(div1, file, 62, 2, 2196);
+    			attr_dev(header, "class", "svelte-xk6vu");
+    			add_location(header, file, 39, 1, 1266);
+    			attr_dev(textarea, "class", "code-editor svelte-xk6vu");
     			attr_dev(textarea, "placeholder", "code your lol here");
-    			add_location(textarea, file, 49, 4, 1697);
-    			attr_dev(div2, "class", "main-article svelte-liiz0q");
-    			add_location(div2, file, 48, 3, 1665);
-    			attr_dev(section0, "class", "main-input-part svelte-liiz0q");
-    			add_location(section0, file, 46, 2, 1587);
-    			set_style(div3, "border-right", "2px solid lightgray");
-    			add_location(div3, file, 52, 2, 1808);
-    			attr_dev(h21, "class", "main-subtitle svelte-liiz0q");
-    			add_location(h21, file, 54, 3, 1905);
-    			attr_dev(p, "class", "result-viewer svelte-liiz0q");
-    			add_location(p, file, 56, 4, 1979);
-    			attr_dev(div4, "class", "main-article svelte-liiz0q");
-    			add_location(div4, file, 55, 3, 1947);
-    			attr_dev(section1, "class", "main-output-part svelte-liiz0q");
-    			add_location(section1, file, 53, 2, 1866);
-    			attr_dev(main, "class", "svelte-liiz0q");
-    			add_location(main, file, 45, 1, 1577);
+    			attr_dev(textarea, "spellcheck", "false");
+    			add_location(textarea, file, 80, 4, 2827);
+    			attr_dev(div2, "class", "main-article svelte-xk6vu");
+    			add_location(div2, file, 79, 3, 2795);
+    			attr_dev(section0, "class", "main-input-part svelte-xk6vu");
+    			add_location(section0, file, 75, 2, 2593);
+    			set_style(div3, "border-right", "2px solid var(--gray-strong)");
+    			add_location(div3, file, 83, 2, 2957);
+    			attr_dev(h2, "class", "main-subtitle svelte-xk6vu");
+    			add_location(h2, file, 85, 3, 3063);
+    			attr_dev(p, "class", "result-viewer svelte-xk6vu");
+    			add_location(p, file, 87, 4, 3137);
+    			attr_dev(div4, "class", "main-article svelte-xk6vu");
+    			add_location(div4, file, 86, 3, 3105);
+    			attr_dev(section1, "class", "main-output-part svelte-xk6vu");
+    			add_location(section1, file, 84, 2, 3024);
+    			attr_dev(main, "class", "svelte-xk6vu");
+    			add_location(main, file, 74, 1, 2583);
     			attr_dev(div5, "id", "app");
-    			attr_dev(div5, "class", "svelte-liiz0q");
-    			add_location(div5, file, 30, 0, 1035);
+    			attr_dev(div5, "class", "svelte-xk6vu");
+    			add_location(div5, file, 38, 0, 1249);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1944,55 +2674,107 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, div5, anchor);
     			append_dev(div5, header);
+    			append_dev(header, img);
+    			append_dev(header, t0);
     			append_dev(header, h1);
-    			append_dev(header, t1);
+    			append_dev(header, t2);
     			append_dev(header, div0);
-    			append_dev(div0, button0);
+    			mount_component(sveltetooltip0, div0, null);
     			append_dev(div0, t3);
-    			append_dev(div0, button1);
+    			mount_component(sveltetooltip1, div0, null);
+    			append_dev(div0, t4);
+    			mount_component(sveltetooltip2, div0, null);
     			append_dev(header, t5);
     			append_dev(header, div1);
-    			append_dev(div1, button2);
-    			append_dev(div5, t7);
+    			append_dev(div1, button0);
+    			append_dev(div1, t7);
+    			append_dev(div1, button1);
+    			append_dev(div5, t9);
     			append_dev(div5, main);
     			append_dev(main, section0);
-    			append_dev(section0, h20);
-    			append_dev(section0, t9);
+    			mount_component(sveltetooltip3, section0, null);
+    			append_dev(section0, t10);
     			append_dev(section0, div2);
     			append_dev(div2, textarea);
     			set_input_value(textarea, /*code*/ ctx[0]);
-    			append_dev(main, t10);
-    			append_dev(main, div3);
     			append_dev(main, t11);
+    			append_dev(main, div3);
+    			append_dev(main, t12);
     			append_dev(main, section1);
-    			append_dev(section1, h21);
-    			append_dev(section1, t13);
+    			append_dev(section1, h2);
+    			append_dev(section1, t14);
     			append_dev(section1, div4);
     			append_dev(div4, p);
-    			append_dev(p, t14);
+    			append_dev(p, t15);
+    			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(button0, "click", /*downloadCode*/ ctx[3], false, false, false),
-    					listen_dev(button1, "click", /*runCode*/ ctx[2], false, false, false),
-    					listen_dev(button2, "click", /*click_handler*/ ctx[4], false, false, false),
-    					listen_dev(textarea, "input", /*textarea_input_handler*/ ctx[5])
+    					listen_dev(button0, "click", /*click_handler_1*/ ctx[5], false, false, false),
+    					listen_dev(button1, "click", /*click_handler_2*/ ctx[6], false, false, false),
+    					listen_dev(textarea, "input", /*textarea_input_handler*/ ctx[7])
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
+    			const sveltetooltip0_changes = {};
+
+    			if (dirty & /*$$scope*/ 512) {
+    				sveltetooltip0_changes.$$scope = { dirty, ctx };
+    			}
+
+    			sveltetooltip0.$set(sveltetooltip0_changes);
+    			const sveltetooltip1_changes = {};
+
+    			if (dirty & /*$$scope*/ 512) {
+    				sveltetooltip1_changes.$$scope = { dirty, ctx };
+    			}
+
+    			sveltetooltip1.$set(sveltetooltip1_changes);
+    			const sveltetooltip2_changes = {};
+
+    			if (dirty & /*$$scope*/ 512) {
+    				sveltetooltip2_changes.$$scope = { dirty, ctx };
+    			}
+
+    			sveltetooltip2.$set(sveltetooltip2_changes);
+    			const sveltetooltip3_changes = {};
+
+    			if (dirty & /*$$scope*/ 512) {
+    				sveltetooltip3_changes.$$scope = { dirty, ctx };
+    			}
+
+    			sveltetooltip3.$set(sveltetooltip3_changes);
+
     			if (dirty & /*code*/ 1) {
     				set_input_value(textarea, /*code*/ ctx[0]);
     			}
 
-    			if (dirty & /*result*/ 2) set_data_dev(t14, /*result*/ ctx[1]);
+    			if (!current || dirty & /*result*/ 2) set_data_dev(t15, /*result*/ ctx[1]);
     		},
-    		i: noop,
-    		o: noop,
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(sveltetooltip0.$$.fragment, local);
+    			transition_in(sveltetooltip1.$$.fragment, local);
+    			transition_in(sveltetooltip2.$$.fragment, local);
+    			transition_in(sveltetooltip3.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(sveltetooltip0.$$.fragment, local);
+    			transition_out(sveltetooltip1.$$.fragment, local);
+    			transition_out(sveltetooltip2.$$.fragment, local);
+    			transition_out(sveltetooltip3.$$.fragment, local);
+    			current = false;
+    		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div5);
+    			destroy_component(sveltetooltip0);
+    			destroy_component(sveltetooltip1);
+    			destroy_component(sveltetooltip2);
+    			destroy_component(sveltetooltip3);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -2008,6 +2790,8 @@ var app = (function () {
 
     	return block;
     }
+
+    const icon = './favicon.png';
 
     function instance($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
@@ -2029,7 +2813,8 @@ var app = (function () {
     	};
 
     	const downloadCode = function (e) {
-    		console.log('download');
+    		const blob = new Blob([code], { type: "text/plain;charset=utf-8;" });
+    		FileSaver_min.saveAs(blob, `lollangCode_${getCurrentDate()}.lo`);
     	};
 
     	let code = '우리 잘해보죠\n\n아트록스님 캐리좀 ㅠㅠㅠㅠㅓㅠㅠㅓㅠㅠㅠㅓㅠㅠㅠ\n그레이브즈님 캐리좀 ㅠㅠㅓㅠㅠㅓㅠㅠㅠㅠㅠㅓㅠㅠㅠㅠㅠ\n가렌님 캐리좀 ㅠㅠㅓㅠㅠㅓㅠㅠㅓㅠㅠㅓㅠㅠ\n\n아트록스 갱좀요\n그레이브즈ㅜㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n가렌 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅓㅠㅠㅠㅠㅜㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠㅠㅠㅠ 갱좀요\n그레이브즈ㅜㅠㅠㅓㅠㅠㅠㅠ 갱좀요\n그레이브즈 갱좀요\n\n뭐하냐고\n\n팀차이 ㅈㅈ';
@@ -2042,6 +2827,14 @@ var app = (function () {
     	});
 
     	const click_handler = e => {
+    		window.open('https://github.com/riroan/lollang/wiki');
+    	};
+
+    	const click_handler_1 = e => {
+    		window.open('https://github.com/riroan/lollang');
+    	};
+
+    	const click_handler_2 = e => {
     		window.open('https://github.com/riroan/lollang');
     	};
 
@@ -2052,6 +2845,10 @@ var app = (function () {
 
     	$$self.$capture_state = () => ({
     		axios,
+    		saveAs: FileSaver_min.saveAs,
+    		SvelteTooltip,
+    		getCurrentDate,
+    		icon,
     		runCode,
     		downloadCode,
     		code,
@@ -2069,7 +2866,16 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [code, result, runCode, downloadCode, click_handler, textarea_input_handler];
+    	return [
+    		code,
+    		result,
+    		runCode,
+    		downloadCode,
+    		click_handler,
+    		click_handler_1,
+    		click_handler_2,
+    		textarea_input_handler
+    	];
     }
 
     class App extends SvelteComponentDev {
