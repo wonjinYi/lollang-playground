@@ -16,6 +16,10 @@ class Keyword(Enum):
     BREAK = auto()
     CONTINUE = auto()
     
+    FUN_DECLARE = auto()
+    FUN_CALL = auto()
+    RETURN = auto()
+    
     COMMENT = auto()
     CLOSE = auto() # loop out
     

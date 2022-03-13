@@ -1,6 +1,6 @@
-from keywords import Keyword
-from operators import Operator
-from variable import Variable, TYPE
+from lollangCompiler.keywords import Keyword
+from lollangCompiler.operators import Operator
+from lollangCompiler.variable import Variable, TYPE, FunVariable
 
 class Compiler:
     def __init__(self):
@@ -8,9 +8,12 @@ class Compiler:
         self.stack = list()
         self.out = list()
         
+        self.var = Variable()
+        self.funVar = FunVariable()
+        
         self.valid = False
         self.indent = 0
-        self.var = Variable()
+        self.currentLine = 0
         
     def getNewLine(self, elseFlag = False):
         return "\t"*(self.indent - int(elseFlag))
@@ -27,6 +30,10 @@ class Compiler:
         return code
     
     def getType(self, code):
+        if "오라고" in code:
+            return Keyword.CONTINUE
+        if "가라고" in code:
+            return Keyword.BREAK
         if "스왑좀" in code:
             return Keyword.SWAP
         if "캐리좀" in code:
@@ -55,6 +62,12 @@ class Compiler:
             return Keyword.ELSE
         if "그니까" in code:
             return Keyword.WHILE
+        if "계속오네" in code:
+            return Keyword.FUN_DECLARE
+        if "나가라 그냥" in code:
+            return Keyword.RETURN
+        if "진짜" in code:
+            return Keyword.FUN_CALL
     
     def removeDeclare(self, elements): # 선언과 동시에 입력, 대입시 "님" 제거
         return [element[:-1] if element[-1] == '님' else element for element in elements]
@@ -64,8 +77,7 @@ class Compiler:
             if element[-1] == "님":
                 self.var.insert(element[:-1])
             elif not self.var.get(element):
-                print(f">> Error : 그런 변수명이 없습니다. {element}")
-                return False
+                raise KeyError
         return True
     
     def varDeclare(self, code):
@@ -81,9 +93,7 @@ class Compiler:
         strFlag = elements[-1] == "리쉬좀요"
         elements = elements[:-1]
         
-        if not self.varCheck(elements):
-            # 컴파일 에러
-            print(">> 변수가 없는게 있습니다!!")
+        self.varCheck(elements)
             
         elements = self.removeDeclare(elements)
         for element in elements:
@@ -113,9 +123,7 @@ class Compiler:
         elements = code.split()
         strFlag = elements[-1] == "갱좀요"
         elements = elements[:-1]
-        # if not self.varCheck(elements):
-        #     # 컴파일 에러
-        #     pass
+        
         if strFlag:
             out+=f"chr({self.makeAssignStmt(elements[0])})"
         else:
@@ -133,9 +141,7 @@ class Compiler:
     
     def varSwap(self, code):
         elements = code.split()[:-1]
-        if not self.varCheck(elements):
-            # 컴파일 에러
-            pass
+        self.varCheck(elements)
         for element in elements:
             out = self.getNewLine()
             var_type = self.var.getType(element)
@@ -146,29 +152,40 @@ class Compiler:
                 out += f"{self.var.get(element)} = ord({self.var.get(element)})"
                 self.var.setType(element, TYPE.INT)
             else:
-                print(">> 잘못된 타입입니다.")
+                raise TypeError
             self.out.append(out)
             
     def makeAssignStmt(self, code, ix = 0):
         stmt = ""
         op = Operator.getOp()
+        
+        if code[:2] == "진짜":
+            stmt+=self.funCall(code, True)
+            return stmt
+        
         if ix == len(op):
             element = code
             l = len(element)
+            numLeftParenthesis, numRightParenthesis = self.getNumLeftParenthesis(element), self.getNumRightParenthesis(element)
+            stmt+="("*numLeftParenthesis
             if element[0] == Operator.ONE:
                 if element.count(Operator.ONE) != l:
                     # 컴파일에러
-                    print(">> 변수 대입이 잘못되었습니다.")
+                    raise KeyError
                 else:
                     stmt+=f"{l}"
             else:
                 stmt+=f"{self.var.get(element)}"
+            stmt+=")"*numRightParenthesis
             return stmt
             
         elements = code.split(op[ix])
         l = len(elements)
         for i, element in enumerate(elements):
-            stmt += self.makeAssignStmt(element, ix+1)
+            numLeftParenthesis, numRightParenthesis = self.getNumLeftParenthesis(element), self.getNumRightParenthesis(element)
+            stmt += "(" * numLeftParenthesis
+            stmt += self.makeAssignStmt(element[numLeftParenthesis:len(element)-numRightParenthesis], ix+1)
+            stmt += ")" * numRightParenthesis
             if i < l-1:
                 stmt += Operator.op[ix]
         return stmt
@@ -177,9 +194,7 @@ class Compiler:
         out = self.getNewLine()
         elements = code.split(" ")
         elements = [element for element in elements if element != ""]
-        if not self.varCheck([elements[0]]):
-            # 컴파일 에러
-            pass
+        self.varCheck([elements[0]])
         variable = self.removeDeclare([elements[0]])[0]
         out += f"{self.var.get(variable)} = "
         out += self.makeAssignStmt(elements[-1])
@@ -225,11 +240,71 @@ class Compiler:
         self.indent+=1
         self.out.append(out)
     
+    def continueStmt(self):
+        out = self.getNewLine()
+        out += "continue"
+        self.out.append(out)
+    
+    def breakStmt(self):
+        out = self.getNewLine()
+        out += "break"
+        self.out.append(out)
+    
+    def funDeclare(self, code):
+        out = self.getNewLine()
+        elements = code.split(" ")[:-1]
+        name, args = elements[0], elements[1:]
+        
+        self.funVar.insert(name)
+        
+        out += f"def {self.funVar.get(name)}("
+        for i, arg in enumerate(args):
+            self.var.insert(arg)
+            if i:
+                out+=","
+            out+=self.var.get(arg)
+        out+="):"
+        
+        self.indent += 1
+        self.out.append(out)
+    
+    def funCall(self, code, ret = False): # ret변수 : True -> 함수 호출이 한줄임, False -> 다른 구문 사이에 껴있음
+        out = ""
+        if not ret:
+            out = self.getNewLine()
+        elements = code[2:].split(",")
+        
+        name, args = elements[0], elements[1:]
+        out+=f"{self.funVar.get(name)}("
+        for i, arg in enumerate(args):
+            if i:
+                out+=","
+            out+=self.makeAssignStmt(arg)
+        out+=")"
+        if ret:
+            return out
+        self.out.append(out)
+
+    def returnStmt(self, code):
+        out = self.getNewLine()
+        out += "return"
+        code = code[:code.find("나가라 그냥")].strip()
+        elements = code.split(" ")
+        if len(elements) > 1: # 반환값은 1개 이하여야 함
+            raise SyntaxError
+        if len(elements) == 1:
+            out+=f" {self.makeAssignStmt(elements[0])}"
+        self.out.append(out)
+    
     def compileLine(self, code):
         code = self.checkComment(code)
         if self.isEmptyLine(code):
             return
         TYPE = self.getType(code)
+        if TYPE == Keyword.CONTINUE:
+            self.continueStmt()
+        if TYPE == Keyword.BREAK:
+            self.breakStmt()
         if TYPE == Keyword.VAR_DECLARE:
             self.varDeclare(code)
         if TYPE == Keyword.VAR_ASSIGN:
@@ -254,6 +329,24 @@ class Compiler:
             self.ifStmt(code, True)
         if TYPE == Keyword.WHILE:
             self.whileStmt(code)
+        if TYPE == Keyword.FUN_DECLARE:
+            self.funDeclare(code)
+        if TYPE == Keyword.FUN_CALL:
+            self.funCall(code)
+        if TYPE == Keyword.RETURN:
+            self.returnStmt(code)
+    
+    def getNumLeftParenthesis(self, code):
+        for i, v in enumerate(code):
+            if v!="ㄴ":
+                return i
+        raise ValueError
+    
+    def getNumRightParenthesis(self, code):
+        for i, v in enumerate(code[::-1]):
+            if v!="ㄹ":
+                return i
+        raise ValueError
     
     def isEmptyLine(self, code):
         for i in code:
@@ -262,28 +355,41 @@ class Compiler:
         return True
     
     def compile(self, codes):
-        if codes[0] != "우리 잘해보죠" or codes[-1] != "팀차이 ㅈㅈ":
-            print(">> Error : 코드형식을 확인하세요.")
-            return
-        codes = codes[1:-1]
-        for code in codes:
-            if self.isEmptyLine(code):
-                continue
-            self.compileLine(code)
+        for ix, code in enumerate(codes):
+            self.currentLine = ix + 1
+            if ix > 0 and ix < len(codes) - 1:
+                self.compileLine(code)
+            elif ix == 0 and code != "우리 잘해보죠" or ix == len(codes) - 1 and code != "팀차이 ㅈㅈ":
+                raise SyntaxError
+        if self.indent:
+            raise SyntaxError
     
     def compileFile(self, path, outPath = "out.py"):
-        with open(path, "r", encoding="utf-8") as file:
-            codelines = [i.rstrip() for i in file.readlines()]
-            self.compile(codelines)
-        self.save(outPath)
-        self.run(outPath)
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                codelines = [i.strip() for i in file.readlines()]
+                self.compile(codelines)
+        except TypeError:
+            print(f"{self.currentLine}번째 적이 학살중입니다!!")
+        except SyntaxError:
+            print(f"{self.currentLine}번째 적은 전설적입니다!!")
+        except ValueError:
+            print(f"{self.currentLine}번째 적을 도저히 막을 수 없습니다!!")
+        except KeyError:
+            print(f"{self.currentLine}번째 적이 전장을 지배하고 있습니다!!")
+        except ZeroDivisionError:
+            print(f"{self.currentLine}번째 적이 전장의 화신입니다!!")
+        except FileNotFoundError:
+            print("서버에 연결할 수 없습니다.")
+        else:
+            self.save(outPath)
+            self.run(outPath)
     
     def run(self, path = "out.py"):
         try:
             exec(open(path).read())
         except:
             print("소환사 한명이 게임을 종료했습니다.")
-            print(">> 런타임 에러")
 
 
 # if __name__ == "__main__":

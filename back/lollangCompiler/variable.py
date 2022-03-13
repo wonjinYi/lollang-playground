@@ -15,18 +15,21 @@ class Variable:
             self.var[name] = [f"var_{len(self.var)}", TYPE.INT]
     
     def get(self, name):
-        try:
-            return self.var[name][0]
-        except KeyError:
-            print(f">> Error : 그런 변수명이 없습니다. {name}")
-            return False
+        return self.var[name][0]
     
     def getType(self, name):
-        try:
-            return self.var[name][1]
-        except KeyError:
-            print(f">> Error : 그런 변수명이 없습니다. {name}")
-            return False
+        return self.var[name][1]
     
     def setType(self, name, newType):
         self.var[name][1] = newType
+
+class FunVariable(Variable):
+    def __init__(self):
+        super().__init__()
+    
+    def insert(self, name):
+        try:
+            self.var[name]
+            raise SyntaxError
+        except KeyError:
+            self.var[name] = [f"fun_{len(self.var)}"]
