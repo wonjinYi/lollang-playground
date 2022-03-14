@@ -160,7 +160,8 @@ class Compiler:
         op = Operator.getOp()
         
         if code[:2] == "진짜":
-            stmt+=self.funCall(code, True)
+            name = code[2:]
+            stmt+=f"{self.funVar.get(name)}("
             return stmt
         
         if ix == len(op):
@@ -182,12 +183,18 @@ class Compiler:
         elements = code.split(op[ix])
         l = len(elements)
         for i, element in enumerate(elements):
+            flag = element[-1] == "."
+            if flag:
+                element = element[:-1]
             numLeftParenthesis, numRightParenthesis = self.getNumLeftParenthesis(element), self.getNumRightParenthesis(element)
             stmt += "(" * numLeftParenthesis
             stmt += self.makeAssignStmt(element[numLeftParenthesis:len(element)-numRightParenthesis], ix+1)
             stmt += ")" * numRightParenthesis
+            if flag:
+                stmt+=")"
             if i < l-1:
                 stmt += Operator.op[ix]
+        stmt = stmt.replace("(,", "(")
         return stmt
 
     def varAssign(self, code):
@@ -268,10 +275,8 @@ class Compiler:
         self.indent += 1
         self.out.append(out)
     
-    def funCall(self, code, ret = False): # ret변수 : True -> 함수 호출이 한줄임, False -> 다른 구문 사이에 껴있음
-        out = ""
-        if not ret:
-            out = self.getNewLine()
+    def funCall(self, code): # ret변수 : True -> 함수 호출이 한줄임, False -> 다른 구문 사이에 껴있음
+        out = self.getNewLine()
         elements = code[2:].split(",")
         
         name, args = elements[0], elements[1:]
@@ -280,9 +285,7 @@ class Compiler:
             if i:
                 out+=","
             out+=self.makeAssignStmt(arg)
-        out+=")"
-        if ret:
-            return out
+        out = out.replace("(,", "(")
         self.out.append(out)
 
     def returnStmt(self, code):
@@ -377,8 +380,6 @@ class Compiler:
             print(f"{self.currentLine}번째 적을 도저히 막을 수 없습니다!!")
         except KeyError:
             print(f"{self.currentLine}번째 적이 전장을 지배하고 있습니다!!")
-        except ZeroDivisionError:
-            print(f"{self.currentLine}번째 적이 전장의 화신입니다!!")
         except FileNotFoundError:
             print("서버에 연결할 수 없습니다.")
         else:
@@ -388,6 +389,8 @@ class Compiler:
     def run(self, path = "out.py"):
         try:
             exec(open(path).read())
+        except ZeroDivisionError:
+            print(f"적이 전장의 화신입니다!!")
         except:
             print("소환사 한명이 게임을 종료했습니다.")
 

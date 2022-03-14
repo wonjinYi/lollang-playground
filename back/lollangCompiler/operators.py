@@ -11,8 +11,10 @@ class Operator:
     DIV = "ㅏ"
     INT_DIV = "ㅕ"
     REM = "ㅑ"
-    op = [">",">=","<","<=", "==","+","-","*","/","//","%"]
+    SEP = ","
+    END = "."
+    op = [",", ">",">=","<","<=", "==","+","-","*","/","//","%"]
         
     @staticmethod
     def getOp():
-        return [Operator.GT, Operator.GE, Operator.LT, Operator.LE, Operator.EQ, Operator.ADD, Operator.SUB,Operator.MUL,Operator.DIV,Operator.INT_DIV,Operator.REM]
+        return [Operator.SEP, Operator.GT, Operator.GE, Operator.LT, Operator.LE, Operator.EQ, Operator.ADD, Operator.SUB,Operator.MUL,Operator.DIV,Operator.INT_DIV,Operator.REM]

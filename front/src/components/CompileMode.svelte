@@ -1,9 +1,12 @@
 <script>
     import SvelteTooltip from 'svelte-tooltip';
+	import enableTextareaTab from '../tools/enableTextareaTab.js';
 
-    export let code;
-    export let result;
-    export let isError;
+    export let code; 	// store writable
+    export let result; 	// store writable
+    export let isError; // store writable
+
+	let codeEditor;
 </script>
 
 <section class="main-input-part">
@@ -12,7 +15,11 @@
     </SvelteTooltip>
 
     <div class="main-article">
-        <textarea class="code-editor" placeholder="code your lol here" spellcheck="false" bind:value={$code}/>
+        <textarea class="code-editor" placeholder="code your lol here" spellcheck="false" 
+			on:keydown={e=> e.keyCode===9 && enableTextareaTab(e, codeEditor)} 
+			bind:value={$code} 
+			bind:this={codeEditor}
+		/>
     </div>
 </section>
 
