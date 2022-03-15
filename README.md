@@ -19,7 +19,7 @@ lollang코드를 작성하고 결과를 확인할 수 있는 웹 기반 프로�
 등등..
 
 ### 감사한 곳
-* lollang by <i>[rorian](https://github.com/riroan)</i> [(Github repo)](https://github.com/riroan/lollang)
+* lollang by <i>[riroan](https://github.com/riroan)</i> [(Github repo)](https://github.com/riroan/lollang)
 
 * node.js [(Github repo)](https://github.com/nodejs/node)
 * rollup [(Github repo)](https://github.com/rollup/rollup)
