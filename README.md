@@ -27,6 +27,7 @@ lollang코드를 작성하고 결과를 확인할 수 있는 웹 기반 프로�
 
 * Axios [(Github repo)](https://github.com/axios/axios)
 * tabOverride <i>by wjbryant</i>[(Github repo)](https://github.com/wjbryant/taboverride) 
+* indent-textarea <i>by fregante</i>[(Github repo)](https://github.com/fregante/indent-textarea) 
 * CodeEditor base <i>by Charmaine Chui</i> [(Enable Line Numbering to any HTML Textarea)](https://medium.com/weekly-webtips/enable-line-numbering-to-any-html-textarea-35e15ea320e2)
 * js-loading-overlay <i>by muhdfaiz</i> [(Github repo)](https://github.com/muhdfaiz/js-loading-overlay) 
 * file-saver <i>by eligrey</i> [(Github repo)](https://github.com/eligrey/FileSaver.js) 
