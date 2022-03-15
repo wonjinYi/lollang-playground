@@ -2545,12 +2545,12 @@ var app = (function () {
     			textarea0 = element("textarea");
     			t = space();
     			textarea1 = element("textarea");
-    			attr_dev(textarea0, "class", "line-counter svelte-11ofy1s");
+    			attr_dev(textarea0, "class", "line-counter svelte-1bc2mze");
     			attr_dev(textarea0, "wrap", "off");
     			textarea0.readOnly = true;
     			textarea0.value = "1";
     			add_location(textarea0, file$2, 33, 0, 757);
-    			attr_dev(textarea1, "class", "code-area svelte-11ofy1s");
+    			attr_dev(textarea1, "class", "code-area svelte-1bc2mze");
     			attr_dev(textarea1, "wrap", "off");
     			attr_dev(textarea1, "spellcheck", "false");
     			add_location(textarea1, file$2, 35, 0, 848);
