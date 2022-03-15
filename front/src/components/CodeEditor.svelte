@@ -52,6 +52,8 @@
 		color : white;
         resize: none;
         overflow : auto;
+
+		line-height : 24px;
 	}
 	textarea:focus {
     	outline: none;
@@ -75,7 +77,7 @@
 		padding-left: 4px;
 
 		background-color : var(--gray-strong);
-		border : 2px solid var(--gray-strong);
+		border : 1px solid var(--gray-strong);
 		border-radius : 0 12px 12px 0;
 		color:white;
 	}
