@@ -1,7 +1,7 @@
 <script>
     import { onMount } from 'svelte';
-    import tabOverride from '../libraries/taboveride.js';
-
+    import * as indentation from 'indent-textarea';
+    
     export let code; // store writable
 
     let lineCounter;
@@ -27,7 +27,7 @@
 
 	onMount( () => {
 		onInput();
-		tabOverride.set(codeArea);
+        indentation.watch(codeArea);
 	})
 </script>
 
@@ -79,4 +79,4 @@
 		border-radius : 0 12px 12px 0;
 		color:white;
 	}
-</style>
+</style> 
