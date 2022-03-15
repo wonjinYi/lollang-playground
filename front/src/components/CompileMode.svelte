@@ -1,25 +1,18 @@
 <script>
     import SvelteTooltip from 'svelte-tooltip';
-	import enableTextareaTab from '../tools/enableTextareaTab.js';
+	import CodeEditor from './CodeEditor.svelte';
 
     export let code; 	// store writable
     export let result; 	// store writable
     export let isError; // store writable
-
-	let codeEditor;
 </script>
 
 <section class="main-input-part">
     <SvelteTooltip tip="Put your *.lo Code below. And press the green <RUN> button to run it" bottom>
         <h2 class="main-subtitle">CODE</h2>
     </SvelteTooltip>
-
-    <div class="main-article">
-        <textarea class="code-editor" placeholder="code your lol here" spellcheck="false" 
-			on:keydown={e=> e.keyCode===9 && enableTextareaTab(e, codeEditor)} 
-			bind:value={$code} 
-			bind:this={codeEditor}
-		/>
+	<div class="main-article">
+		<CodeEditor {code} />
     </div>
 </section>
 
@@ -53,6 +46,7 @@
 
 	.main-article {
 		flex : 1;
+		display : flex;
 		padding : 8px;
 	}
 
@@ -71,10 +65,7 @@
 	textarea:focus {
     	outline: none;
 	}
-	.code-editor {
-		background-color : var(--gray-strong);
-		border : none;
-	}
+
 	.result-viewer {
 		background-color : var(--gray-normal);;
 		border : 2px solid var(--gray-strong);

@@ -34,7 +34,8 @@
 			const reqdata = {
 				message : ( ($code.split('\n')).map(line=>line.trim()) ).join('\n'), // 각 코드 라인의 좌/우 공백을 제거(trim)합니다.
 			};
-			console.log('[req]', reqdata)
+			console.log('[rawLollangCode]', $code);
+			console.log('[req]', reqdata);
 			const { data } = await axios.post(reqUrl, JSON.stringify(reqdata)); // { resType, result, pythonCode_raw, pythonCode_postProcessed, compilerVersion }
 			
 			// 응답 수신
@@ -120,6 +121,7 @@
 		--gray-strong : #0D1117;
 		--gray-normal : rgb(22,27,34);
 		--gray-light : rgb(54,59,66);
+		--gray-lighter : rgb(100,100,100);
 		--blue-neon : rgb(19,35,58);
 		--green-normal : rgb(35,134,54)
 	}
