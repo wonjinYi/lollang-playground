@@ -2545,50 +2545,54 @@ var app = (function () {
     			textarea0 = element("textarea");
     			t = space();
     			textarea1 = element("textarea");
-    			attr_dev(textarea0, "class", "line-counter svelte-1bc2mze");
+    			attr_dev(textarea0, "class", "line-counter svelte-1efcytn");
     			attr_dev(textarea0, "wrap", "off");
     			textarea0.readOnly = true;
-    			textarea0.value = "1";
-    			add_location(textarea0, file$2, 33, 0, 757);
-    			attr_dev(textarea1, "class", "code-area svelte-1bc2mze");
+    			set_style(textarea0, "--lineCounterWidth", /*lineCounterWidth*/ ctx[3]);
+    			add_location(textarea0, file$2, 42, 0, 1063);
+    			attr_dev(textarea1, "class", "code-area svelte-1efcytn");
     			attr_dev(textarea1, "wrap", "off");
     			attr_dev(textarea1, "spellcheck", "false");
-    			add_location(textarea1, file$2, 35, 0, 848);
+    			add_location(textarea1, file$2, 47, 0, 1196);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, textarea0, anchor);
-    			/*textarea0_binding*/ ctx[6](textarea0);
+    			/*textarea0_binding*/ ctx[7](textarea0);
     			insert_dev(target, t, anchor);
     			insert_dev(target, textarea1, anchor);
-    			set_input_value(textarea1, /*$code*/ ctx[3]);
-    			/*textarea1_binding*/ ctx[8](textarea1);
+    			set_input_value(textarea1, /*$code*/ ctx[4]);
+    			/*textarea1_binding*/ ctx[9](textarea1);
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(textarea1, "input", /*textarea1_input_handler*/ ctx[7]),
-    					listen_dev(textarea1, "scroll", /*onScroll*/ ctx[4], false, false, false),
-    					listen_dev(textarea1, "input", /*onInput*/ ctx[5], false, false, false)
+    					listen_dev(textarea1, "input", /*textarea1_input_handler*/ ctx[8]),
+    					listen_dev(textarea1, "scroll", /*onScroll*/ ctx[5], false, false, false),
+    					listen_dev(textarea1, "input", /*onInput*/ ctx[6], false, false, false)
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*$code*/ 8) {
-    				set_input_value(textarea1, /*$code*/ ctx[3]);
+    			if (dirty & /*lineCounterWidth*/ 8) {
+    				set_style(textarea0, "--lineCounterWidth", /*lineCounterWidth*/ ctx[3]);
+    			}
+
+    			if (dirty & /*$code*/ 16) {
+    				set_input_value(textarea1, /*$code*/ ctx[4]);
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(textarea0);
-    			/*textarea0_binding*/ ctx[6](null);
+    			/*textarea0_binding*/ ctx[7](null);
     			if (detaching) detach_dev(t);
     			if (detaching) detach_dev(textarea1);
-    			/*textarea1_binding*/ ctx[8](null);
+    			/*textarea1_binding*/ ctx[9](null);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -2605,10 +2609,13 @@ var app = (function () {
     	return block;
     }
 
+    const lineCounterWidthBase = 8;
+    const lineCounterWidthPerChar = 12;
+
     function instance$2($$self, $$props, $$invalidate) {
     	let $code,
     		$$unsubscribe_code = noop,
-    		$$subscribe_code = () => ($$unsubscribe_code(), $$unsubscribe_code = subscribe(code, $$value => $$invalidate(3, $code = $$value)), code);
+    		$$subscribe_code = () => ($$unsubscribe_code(), $$unsubscribe_code = subscribe(code, $$value => $$invalidate(4, $code = $$value)), code);
 
     	$$self.$$.on_destroy.push(() => $$unsubscribe_code());
     	let { $$slots: slots = {}, $$scope } = $$props;
@@ -2618,10 +2625,13 @@ var app = (function () {
     	$$subscribe_code();
     	let lineCounter;
     	let codeArea;
+    	let lineCounterWidth = lineCounterWidthBase + lineCounterWidthPerChar;
 
     	const onScroll = function () {
     		$$invalidate(1, lineCounter.scrollTop = codeArea.scrollTop, lineCounter);
     		$$invalidate(1, lineCounter.scrollLeft = codeArea.scrollLeft, lineCounter);
+
+    		if (lineCounter.scrollTop < codeArea.scrollTop) ;
     	};
 
     	const onInput = function () {
@@ -2638,6 +2648,7 @@ var app = (function () {
     		}
 
     		lineCountCache = lineCount;
+    		$$invalidate(3, lineCounterWidth = String(lineCountCache).length * lineCounterWidthPerChar + lineCounterWidthBase);
     	};
 
     	onMount(() => {
@@ -2680,6 +2691,9 @@ var app = (function () {
     		code,
     		lineCounter,
     		codeArea,
+    		lineCounterWidthBase,
+    		lineCounterWidthPerChar,
+    		lineCounterWidth,
     		onScroll,
     		onInput,
     		$code
@@ -2689,6 +2703,7 @@ var app = (function () {
     		if ('code' in $$props) $$subscribe_code($$invalidate(0, code = $$props.code));
     		if ('lineCounter' in $$props) $$invalidate(1, lineCounter = $$props.lineCounter);
     		if ('codeArea' in $$props) $$invalidate(2, codeArea = $$props.codeArea);
+    		if ('lineCounterWidth' in $$props) $$invalidate(3, lineCounterWidth = $$props.lineCounterWidth);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2699,6 +2714,7 @@ var app = (function () {
     		code,
     		lineCounter,
     		codeArea,
+    		lineCounterWidth,
     		$code,
     		onScroll,
     		onInput,
