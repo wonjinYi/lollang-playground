@@ -7,9 +7,17 @@
     let lineCounter;
 	let codeArea;
 
+	const lineCounterWidthBase = 8
+	const lineCounterWidthPerChar = 12;
+	let lineCounterWidth = lineCounterWidthBase + lineCounterWidthPerChar;
+
 	const onScroll = function () {
 		lineCounter.scrollTop = codeArea.scrollTop;
     	lineCounter.scrollLeft = codeArea.scrollLeft;
+
+		if(lineCounter.scrollTop<codeArea.scrollTop){
+
+		}
 	}
 
 	const onInput = function () {
@@ -23,6 +31,7 @@
 			lineCounter.value = outarr.join('\n');
 		}
 		lineCountCache = lineCount;	
+		lineCounterWidth = String(lineCountCache).length * lineCounterWidthPerChar + lineCounterWidthBase;
 	}
 
 	onMount( () => {
@@ -31,7 +40,10 @@
 	})
 </script>
 
-<textarea class='line-counter' wrap='off' readonly bind:this={lineCounter}>1</textarea>
+<textarea class='line-counter' wrap='off' readonly 
+	bind:this={lineCounter}
+	style="--lineCounterWidth:{lineCounterWidth}"
+/>
 
 <textarea class='code-area' wrap='off' spellcheck='false'
     bind:value={$code} 
@@ -57,13 +69,29 @@
 	}
 	textarea:focus {
     	outline: none;
-	} 
-
+	}
+	textarea::-webkit-scrollbar-track{
+		border-radius: 10px;
+		background-color: var(--gray-strong);
+	}
+	textarea::-webkit-scrollbar{
+		width: 8px;
+		height : 0px;
+		background-color: var(--gray-strong);
+	}
+	textarea::-webkit-scrollbar-thumb{
+		border-radius: 16px;
+		background-color: var(--gray-light);
+	}
+	textarea::-webkit-scrollbar-corner{
+		display : none;
+	}
+	
     .line-counter {
       	display: flex;
 
 		padding-right : 4px;
-		width: 36px;
+		width: calc( var(--lineCounterWidth) * 1px );
 
 		overflow-y: hidden;
 		text-align: right;
