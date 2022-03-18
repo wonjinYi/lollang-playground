@@ -47,6 +47,7 @@
 	.main-article {
 		flex : 1;
 		display : flex;
+		position : relative;
 		padding : 8px;
 	}
 
