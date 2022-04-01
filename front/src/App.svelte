@@ -63,7 +63,7 @@
 		const blob = new Blob([$code], {
 			type: "text/plain;charset=utf-8;",
 		});
-		saveAs(blob, `lollangCode_${getCurrentTime()}.lo`);
+		saveAs(blob, `lollangCode_${getCurrentTime()}.lola`);
 	}
 </script>
 
