@@ -58,7 +58,7 @@
 				.replace(/가라고/g, '<span class="highlight-break">$&</span>') // while
 				.replace(/뭐함\?/g, '<span class="highlight-end-controlflow">$&</span>') // end for, while, if 
 				.replace(/계속오네/g, '<span class="highlight-declarefunction">$&</span>')
-				.replace(/그냥/g, '<span class="highlight-void">$&</span>')
+				.replace(/나가라\s그냥/g, '<span class="highlight-void">$&</span>')
 				.replace(/진짜/g, '<span class="highlight-callfunction">$&</span>')
 				.replace(/\,/g, '<span class="highlight-comma">$&</span>')
 				.replace(/\./g, '<span class="highlight-period">$&</span>')
